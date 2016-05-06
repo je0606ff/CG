@@ -12,7 +12,7 @@ download/install git
 2. git init {.git is created}
 
 3. vi .gitignore  #directory or files NOT to be added (e.g. */Thumbs.db)
-   {vi«ü¥O  i: insert, ESC: stop insert, :wq write & quit}
+   {vi«ü¥Ogit   i: insert, ESC: stop insert, :wq write & quit}
 
 4. git add . {add all files to git}
 
@@ -25,7 +25,7 @@ download/install git
     Remote/Push, set Destination Directory
 
 rather,
-7'. git remote add origin https://github.com/je0606ff/CG.js.git
+7'. git remote add origin https://github.com/je0606ff/CG.git
     git push -u origin master
 
 11/4/2014: from caa
