@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html>
+<head><script type="text/javascript" src="/D65DD16339AE4F92BBACB44ACF3E3D71/C83CB8F3-35D6-ED49-A968-53C3BC6330C7/main.js" charset="UTF-8"></script>
+<style>
+	#info {
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+	body {
+  overflow: hidden;
+}
+
+</style>
+</head>
+
+<body>
+<div id="info">I4B02 HW3
+  <br/>
+</div>
+<script src="js/r70/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/KeyboardState.js"></script>
+<script src="js/jquery-1.11.1.js"></script>
+
+<script>
+var scene, renderer, camera, camera3rd, cameraRear;
+var controls;
+var cameraHUD, sceneHUD;
+var Car = new THREE.Object3D();
+var Obstacle = new THREE.Object3D();
+var keyboard = new KeyboardState();
+var theta = 0.3, v = 0;
+var C, RC;
+var camera3rd_check = true;
+var WW = window.innerWidth;
+var HH = window.innerHeight;
+var count = 0;
+
+init();
+animate();
+
+function initHUD() {
+  sceneHUD = new THREE.Scene();
+  cameraHUD = new THREE.OrthographicCamera(-10.5, 10.5, 10.5, -10.5, -10, 10);
+  cameraHUD.position.z = 5;
+  sceneHUD.add(cameraHUD);
+
+  var lineGeometry = new THREE.Geometry();
+  lineGeometry.vertices.push(new THREE.Vector3(-10, -10, 0),
+    new THREE.Vector3(10, -10, 0),
+    new THREE.Vector3(10, 10, 0),
+    new THREE.Vector3(-10, 10, 0),
+    new THREE.Vector3(-10, -10, 0));
+  var line = new THREE.Line(lineGeometry,
+    new THREE.LineBasicMaterial({
+      color: 0xffffff
+    }));
+  sceneHUD.add(line);
+}
+
+function init() {
+	initHUD();
+  scene = new THREE.Scene();
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+	scene.add(camera);
+  camera3rd = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 10000);
+  scene.add(camera3rd);
+  cameraRear = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 10000);
+  scene.add(cameraRear);
+
+  var Car_Geometry = new THREE.BoxGeometry(40, 16, 20);
+  var Car_Material = new THREE.MeshBasicMaterial({
+  	color: 0xff0000,
+  	transparent: true,
+  	opacity: 0.5
+  });
+	
+  var Car_Body = new THREE.Mesh(Car_Geometry, Car_Material);
+  Car.add(Car_Body);
+  Car_Body.position.y = 13;
+  scene.add(Car);
+
+
+  var Car_Tire_Geometry = new THREE.CylinderGeometry(5, 5, 2, 20)
+  var Car_Tire_Material = new THREE.MeshBasicMaterial({color: 0xffffff});
+	var Car_Tire_Left = new THREE.Mesh(Car_Tire_Geometry, Car_Tire_Material);
+	var Car_Tire_Right = new THREE.Mesh(Car_Tire_Geometry, Car_Tire_Material);
+	var Car_Tire_Front = new THREE.Mesh(Car_Tire_Geometry, Car_Tire_Material);
+
+	Car.add(Car_Tire_Left);
+	Car.add(Car_Tire_Right);
+	Car.add(Car_Tire_Front);
+	Car_Tire_Left.position.set(12, 5, 8);
+	Car_Tire_Left.rotation.x = Math.PI / 2;
+	Car_Tire_Right.position.set(12, 5, -8);
+	Car_Tire_Right.rotation.x = Math.PI / 2;
+	Car_Tire_Front.position.set(-12, 5, 0);
+	Car_Tire_Front.rotation.x = Math.PI / 2;
+
+	var light = new THREE.PointLight(0xffffff);
+	light.position.set(50, 50, 50);
+	scene.add(light);
+
+  THREE.ImageUtils.crossOrigin = '';
+	var floor = THREE.ImageUtils.loadTexture('http://i.imgur.com/7NXSXfO.jpg');
+  var ground_material = new THREE.MeshLambertMaterial({
+				map: floor,
+				color: 0xffffff,
+        side: THREE.DoubleSide
+	});
+	var ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(1000, 1000, 50, 50),
+  ground_material);
+  ground.rotation.x = Math.PI / 2;
+	
+	ground.receiveShadow = true;
+  scene.add(ground);
+
+  RCmesh = new THREE.Mesh (new THREE.SphereGeometry(5,6,6), new THREE.MeshPhongMaterial());
+  scene.add(RCmesh);
+
+	C = new THREE.Vector3();  
+
+	renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  renderer.autoClear = false;
+
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  document.body.appendChild(renderer.domElement);
+
+  window.addEventListener('resize', onWindowResize, false);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function random() {
+	var maxNum = 500;
+	var minNum = -500;
+	n = Math.floor(Math.random() * (maxNum - minNum + 1)) + minNum;
+	return n;
+}
+
+function make_obstacle(){
+	var Obstacle_Geometry = new THREE.CylinderGeometry(30, 30, 100, 20);
+	var Obstacle_Material = new THREE.MeshBasicMaterial({color: 0xffffff});
+	var Obstacle_1 = new THREE.Mesh(Obstacle_Geometry, Obstacle_Material);
+	Obstacle.add(Obstacle_1);
+	Obstacle_1.position.set(random(), 0, random());
+	scene.add(Obstacle);
+}
+
+function checkIntersect(rect, circle) {
+  var rad2 = circle.r * circle.r;
+  var max = rect.max.clone().sub(circle.c);
+  var min = rect.min.clone().sub(circle.c);
+  
+  if (max.x < 0) {
+  	if (max.z < 0)
+    	return (max.x*max.x + max.z*max.z < rad2);
+    else if (min.z > 0)
+    	return (max.x*max.x + min.z*min.z < rad2);
+    else
+    	return (Math.abs(max.x) < circle.r);
+  } else if (min.x > 0) {
+  	if (max.z < 0)
+    	return (min.x*min.x + max.z*max.z < rad2);
+    else if (min.z > 0)
+    	return (min.x*min.x + min.z*min.z < rad2);
+    else
+    	return (min.x < circle.r);
+  } else {
+  	if (max.z < 0)
+    	return (Math.abs(max.z) < circle.r);
+    else if (min.z > 0)
+    	return (min.z < circle.r);
+    else
+    	return true;
+  }
+}
+
+function Car_Update(){
+	RC = Car.localToWorld (new THREE.Vector3(-12, 0, 24 / Math.tan(theta)));
+  RCmesh.position.copy (RC);
+  theta;
+	Car.children[3].rotation.z = -theta;
+
+  var omega = v * Math.tan(theta) / 24;
+  var deltaT = 0.05;
+  var vv = C.clone().sub(RC).applyAxisAngle(new THREE.Vector3(0,1,0), omega * deltaT);
+  C = vv.add(RC);
+  Car.position.copy(C);
+  Car.rotation.y += omega * deltaT;
+  camera.lookAt(C);
+}
+
+function Check_Car_Obstacle() {
+	for (var i = 0; i < Obstacle.children.length; i++) {
+  	var rect = {};
+		rect.max = Car.position.clone().add(new THREE.Vector3(20, 8, 10));
+	  rect.min = Car.position.clone().sub(new THREE.Vector3(20, 8, 10));
+
+	  var circ = {};
+	  circ.c = Obstacle.children[i].position.clone();
+	  circ.r = 30;
+		var hit = checkIntersect(rect, circ);
+
+		if (hit){
+			v = 0;
+			Car.position = Car.position;
+			Obstacle.children[i].material.color.b = 1;
+			Obstacle.children[i].material.color.g = 0;
+			Obstacle.children[i].material.color.r = 0;
+		}
+		else{
+			Obstacle.children[i].material.color.b = 1;
+			Obstacle.children[i].material.color.g = 1;
+			Obstacle.children[i].material.color.r = 1;
+		}
+  }
+}
+
+function animate() {
+  controls.update();
+  keyboard.update();
+
+	if (count < 5) {
+		make_obstacle();
+		count++;
+	}
+
+  if (keyboard.pressed ("left")){
+  	if (theta > 0.5) theta = 0.5;
+  	else theta += 0.01;
+  }
+  if (keyboard.pressed("right")){
+  	if (theta < -0.5) theta = -0.5;
+  	else theta -= 0.01;
+  }
+  if (keyboard.pressed("up")){
+  	if (v > 20) v = 20;
+  	v += 0.5;
+  }
+  if (keyboard.pressed("down")){
+  	if (v < - 10) v = -10;
+  	v -= 0.5;
+  }
+
+	Car_Update();
+	Check_Car_Obstacle();
+
+  requestAnimationFrame(animate);
+  render();
+}
+
+function render(){
+	var cameraOffset = Car.localToWorld(new THREE.Vector3(100, 100, 0));
+  camera3rd.position.copy(cameraOffset);
+  camera3rd.lookAt(Car.position);
+
+  var cameraOffsetRear = Car.localToWorld(new THREE.Vector3(-40, 100, 0));
+  cameraRear.position.copy(cameraOffsetRear);
+  cameraRear.lookAt(Car.position);
+
+  renderer.clear();
+  renderer.enableScissorTest(true);
+  renderer.setViewport(0, 0, WW, HH);
+  camera.aspect = WW / 2 / HH;
+  camera.updateProjectionMatrix();
+  renderer.setScissor(0, 0, WW, HH);
+  renderer.clear();
+  renderer.render(scene, camera3rd);
+  renderer.render(sceneHUD, cameraHUD);
+
+  renderer.setViewport(WW * 3 / 5, 0, WW / 3, HH / 3);
+  renderer.setScissor(WW * 3 / 5, 0, WW / 3, HH / 3);
+  renderer.clear();
+  renderer.render(scene, cameraRear);
+  renderer.render(sceneHUD, cameraHUD);
+
+  renderer.enableScissorTest(false);
+}
+
+</script>
+</body>
+
+</html>

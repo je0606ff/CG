@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html>
+<head><script type="text/javascript" src="/D65DD16339AE4F92BBACB44ACF3E3D71/C83CB8F3-35D6-ED49-A968-53C3BC6330C7/main.js" charset="UTF-8"></script>
+<style>
+	#info {
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+
+</style>
+</head>
+
+<body>
+<div id="info">I4B02 HW1
+  <br/>
+  <br/>
+  <button id="analog" style="width:10%">Analog</button>
+  <button id="sector" style="width:10%">Sector</button>
+  <button id="quartz" style="width:10%">Quartz</button>
+  <button id="reset"	style="width:10%">Reset</button>
+</div>
+<script src="js/r70/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/jquery-1.11.1.js"></script>
+
+<script>
+var scene, renderer, camera;
+var controls;
+var angle = 0,
+  analog = false,
+  sector = false,
+  quartz = false;
+var clock = new THREE.Clock();
+var timer = new THREE.Object3D();
+var circle_second;
+init();
+animate();
+
+$("#reset").click(function() {
+  reset();
+  scene.remove(circle_second);
+  timer.rotation.z = 0;
+});
+
+$("#analog").click(function() {
+  analog = !analog;
+  sector = false;
+  quartz = false;
+});
+
+$("#sector").click(function() {
+  sector = !sector;
+  analog = false;
+  quartz = false;
+});
+
+$("#quartz").click(function() {
+  quartz = !quartz;
+  analog = false;
+  sector = false;
+});
+
+function init() {
+  scene = new THREE.Scene();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 1000);
+  camera.position.z = 300;
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  var circle_geometry = new THREE.CircleGeometry(100, 60);
+  var circle_material = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    side: THREE.DoubleSide
+  });
+  var circle = new THREE.Mesh(circle_geometry, circle_material);
+  scene.add(circle);
+
+  var ring_geometry = new THREE.RingGeometry(100, 101, 60);
+  var ring_material = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.DoubleSide
+  });
+  var ring = new THREE.Mesh(ring_geometry, ring_material);
+  scene.add(ring);
+
+  var cylinder_geometry = new THREE.CylinderGeometry(5, 5, 1, 60);
+  var cylinder_material = new THREE.MeshBasicMaterial({
+    color: 0xff0000,
+    side: THREE.DoubleSide
+  });
+  var cylinder = new THREE.Mesh(cylinder_geometry, cylinder_material);
+
+  timer.add(cylinder);
+  cylinder.rotation.x = Math.PI / 2;
+
+  var box_geometry_3_9 = new THREE.BoxGeometry(10, 5, 5);
+  var box_geometry_0_6 = new THREE.BoxGeometry(5, 10, 5);
+  var box_material = new THREE.MeshBasicMaterial({
+    color: 0xff0000,
+    side: THREE.DoubleSide
+  });
+
+  var box_3 = new THREE.Mesh(box_geometry_3_9, box_material);
+  var box_9 = box_3.clone();
+  scene.add(box_3);
+  scene.add(box_9);
+  box_3.position.set(100, 0, 0);
+  box_9.position.set(-100, 0, 0);
+
+  var box_0 = new THREE.Mesh(box_geometry_0_6, box_material);
+  var box_6 = box_0.clone();
+  scene.add(box_0);
+  scene.add(box_6);
+  box_0.position.set(0, 100, 0);
+  box_6.position.set(0, -100, 0);
+
+  var second_hand_geomerty = new THREE.BoxGeometry(80, 5, 5);
+  var second_hand_material = new THREE.MeshBasicMaterial({
+    color: 0x666666,
+    side: THREE.DoubleSide
+  });
+  var second_hand = new THREE.Mesh(second_hand_geomerty, second_hand_material);
+  timer.add(second_hand);
+  second_hand.rotation.z = Math.PI / 2;
+  second_hand.translateOnAxis(new THREE.Vector3(1, 0, 0), 80 / 2);
+  second_hand.translateOnAxis(new THREE.Vector3(0, 0, 1), 5 / 2 + .1);
+
+  scene.add(timer);
+  window.addEventListener('resize', onWindowResize, false);
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+function drawCircle() {
+  scene.remove(circle_second);
+  var geometry = new THREE.CircleGeometry(80, 60, Math.PI / 2, -angle);
+  var material = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+    side: THREE.DoubleSide
+  });
+  circle_second = new THREE.Mesh(geometry, material);
+  circle_second.position.z = 1;
+  scene.add(circle_second);
+}
+
+function reset() {
+  angle = 0;
+  analog = false;
+  sector = false;
+  quartz = false;
+}
+
+function animate() {
+  var dt = clock.getDelta();
+  controls.update();
+  if (analog) {
+    angle += dt * Math.PI / 30;
+    timer.rotation.z = -angle;
+  }
+
+  if (sector) {
+    angle += dt * Math.PI / 30
+    drawCircle();
+  }
+
+  if (quartz) {
+    angle += dt * Math.PI / 30;
+    timer.rotation.z = -Math.floor(angle * 180 / Math.PI / 6) * 6 * Math.PI / 180;
+  }
+
+  requestAnimationFrame(animate);
+  renderer.render(scene, camera);
+}
+
+</script>
+</body>
+
+</html>

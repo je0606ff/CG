@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html>
+<head><script type="text/javascript" src="/D65DD16339AE4F92BBACB44ACF3E3D71/C83CB8F3-35D6-ED49-A968-53C3BC6330C7/main.js" charset="UTF-8"></script>
+<style>
+	#info {
+  position: absolute;
+  top: 2%;
+  width: 100%;
+  padding: 10px;
+  text-align: center;
+  color: #ffff00
+}
+
+body {
+  overflow: hidden;
+}
+
+</style>
+</head>
+
+<body>
+<div id="info">I4B02 HW2<br>
+<a href="javascript:style('Walking')">Walking</a>
+<a href="javascript:style('Dancing')">Dancing</a>
+</div>
+<script src="js/r70/three.min.js"></script>
+<script src="js/OrbitControls.js"></script>
+<script src="js/dat.gui.min.js"></script>
+<script src="js/jquery-1.11.1.js"></script>
+
+<script>
+var scene, renderer, camera, camera3rd;
+var controls, gcontrols;
+var Danboard_Angle = 0;
+var Danboard = new THREE.Object3D();
+var clock = new THREE.Clock();
+var Dance_Check = false,
+  Walk_Check = false;
+var dt;
+
+var period = 4;
+
+var Walk_Pose_1 = {
+  LShoulder: .5,
+  RShoulder: -.5,
+  LLeg: -.5,
+  RLeg: .5
+}
+
+var Walk_Pose_2 = {
+  LShoulder: 0,
+  RShoulder: 0,
+  LLeg: 0,
+  RLeg: 0
+}
+
+var Walk_Pose_3 = {
+  LShoulder: -.5,
+  RShoulder: .5,
+  LLeg: .5,
+  RLeg: -.5
+}
+
+var Dance_Pose_1 = {
+  LShoulder_X: 1,
+  RShoulder_X: 0,
+  LShoulder_Z: -1,
+  RShoulder_Z: 0,
+  LLeg_X: 0,
+  RLeg_X: 0,
+  LLeg_Z: -.4,
+  RLeg_Z: .4
+}
+
+var Dance_Pose_2 = {
+  LShoulder_X: 0,
+  RShoulder_X: 0,
+  LShoulder_Z: 0,
+  RShoulder_Z: 0,
+  LLeg_X: 0,
+  RLeg_X: 0,
+  LLeg_Z: -.4,
+  RLeg_Z: .4
+}
+
+var Dance_Pose_3 = {
+  LShoulder_X: 0,
+  RShoulder_X: 0,
+  LShoulder_Z: 0,
+  RShoulder_Z: 0,
+  LLeg_X: 0,
+  RLeg_X: 0,
+  LLeg_Z: 0,
+  RLeg_Z: 0
+}
+
+var Dance_Pose_4 = {
+  LShoulder_X: 0,
+  RShoulder_X: 1,
+  LShoulder_Z: 0,
+  RShoulder_Z: 1,
+  LLeg_X: 0,
+  RLeg_X: 0,
+  LLeg_Z: -.4,
+  RLeg_Z: .4
+}
+
+var Dance_Pose_5 = {
+  LShoulder_X: 0,
+  RShoulder_X: 0,
+  LShoulder_Z: 0,
+  RShoulder_Z: 0,
+  LLeg_X: 0,
+  RLeg_X: 0,
+  LLeg_Z: -.4,
+  RLeg_Z: .4
+}
+
+
+//Walk & Dance Keys 
+var Wkeys = [{
+  s: 0,
+  pose: Walk_Pose_1
+}, {
+  s: 0.25,
+  pose: Walk_Pose_2
+}, {
+  s: 0.5,
+  pose: Walk_Pose_3
+}, {
+  s: 0.75,
+  pose: Walk_Pose_2
+}, {
+  s: 1,
+  pose: Walk_Pose_1
+}];
+var Dkeys = [{
+  s: 0,
+  pose: Dance_Pose_1
+}, {
+  s: 1 / 9 * 1,
+  pose: Dance_Pose_2
+}, {
+  s: 1 / 9 * 2,
+  pose: Dance_Pose_1
+}, {
+  s: 1 / 9 * 3,
+  pose: Dance_Pose_2
+}, {
+  s: 1 / 9 * 4,
+  pose: Dance_Pose_3
+}, {
+  s: 1 / 9 * 5,
+  pose: Dance_Pose_4
+}, {
+  s: 1 / 9 * 6,
+  pose: Dance_Pose_5
+}, {
+  s: 1 / 9 * 7,
+  pose: Dance_Pose_4
+}, {
+  s: 1 / 9 * 8,
+  pose: Dance_Pose_5
+}, {
+  s: 1,
+  pose: Dance_Pose_3
+}];
+
+var WKeys = Wkeys;
+
+init();
+animate();
+
+function init() {
+  scene = new THREE.Scene();
+  renderer = new THREE.WebGLRenderer();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setClearColor(0x888888);
+  document.body.appendChild(renderer.domElement);
+
+  camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 1, 10000);
+  camera.position.set(0, 250, 300);
+  controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+  camera3rd = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 1, 10000);
+  scene.add(camera3rd);
+
+  //LOAD IMAGES
+  THREE.ImageUtils.crossOrigin = '';
+  var Face_Materials = [];
+  Face_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/vvX30om.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Face_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/Q6ZNedh.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Face_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/piTZ4kh.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Face_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/hJwh2QW.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Face_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/ny95QdK.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Face_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/QhDLbEb.jpg'),
+    side: THREE.DoubleSide
+  }));
+  var Body_Materials = [];
+  Body_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/t8hWsAK.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Body_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/jD8iHs0.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Body_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/ZULxvAV.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Body_Materials.push(new THREE.MeshBasicMaterial({
+    visible: false
+  }));
+  Body_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/NPAwti5.jpg'),
+    side: THREE.DoubleSide
+  }));
+  Body_Materials.push(new THREE.MeshBasicMaterial({
+    map: THREE.ImageUtils.loadTexture('http://i.imgur.com/2tcZUgT.jpg'),
+    side: THREE.DoubleSide
+  }));
+
+  //BODY
+  var Danboard_Body_Geometry = new THREE.BoxGeometry(40, 60, 40);
+  var Danboard_Body_Material = new THREE.MeshFaceMaterial(Body_Materials);
+  var Danboard_Body = new THREE.Mesh(Danboard_Body_Geometry, Danboard_Body_Material);
+  Danboard.add(Danboard_Body);
+  Danboard_Body.position.set(0, 80, 0);
+
+  //LID
+  var Danboard_Lid_FB_Geometry = new THREE.PlaneGeometry(40, 20);
+  var Danboard_Lid_FB_Material = new THREE.MeshBasicMaterial({
+    side: THREE.DoubleSide,
+    color: 0XCDAA7D
+  });
+  var Danboard_Lid_Front = new THREE.Mesh(Danboard_Lid_FB_Geometry, Danboard_Lid_FB_Material);
+  var Danboard_Lid_Back = new THREE.Mesh(Danboard_Lid_FB_Geometry, Danboard_Lid_FB_Material);
+  Danboard_Body.add(Danboard_Lid_Front);
+  Danboard_Body.add(Danboard_Lid_Back);
+  Danboard_Lid_Front.rotation.x = -Math.PI / 8;
+  Danboard_Lid_Front.position.set(0, -30, 20);
+  Danboard_Lid_Back.rotation.x = Math.PI / 8;
+  Danboard_Lid_Back.position.set(0, -30, -20);
+
+  var Danboard_Lid_LR_Geometry = new THREE.PlaneGeometry(20, 40);
+  var Danboard_Lid_LR_Material = new THREE.MeshBasicMaterial({
+    side: THREE.DoubleSide,
+    color: 0XCDAA7D
+  });
+  var Danboard_Lid_Left = new THREE.Mesh(Danboard_Lid_LR_Geometry, Danboard_Lid_LR_Material);
+  var Danboard_Lid_Right = new THREE.Mesh(Danboard_Lid_LR_Geometry, Danboard_Lid_LR_Material);
+  Danboard_Lid_Left.rotation.y = -Math.PI / 2;
+  Danboard_Lid_Left.rotation.x = -Math.PI / 2;
+  Danboard_Lid_Left.rotation.y = -Math.PI / 4;
+  Danboard_Lid_Left.position.set(-20, -30, 0);
+  Danboard_Lid_Right.rotation.y = -Math.PI / 2;
+  Danboard_Lid_Right.rotation.x = -Math.PI / 2;
+  Danboard_Lid_Right.rotation.y = Math.PI / 4;
+  Danboard_Lid_Right.position.set(20, -30, 0);
+  Danboard_Body.add(Danboard_Lid_Left);
+  Danboard_Body.add(Danboard_Lid_Right);
+
+  //HEAD
+  var Danboard_Head_Geometry = new THREE.BoxGeometry(70, 40, 50);
+  var Danboard_Head_Material = new THREE.MeshFaceMaterial(Face_Materials);
+  var Danboard_Head = new THREE.Mesh(Danboard_Head_Geometry, Danboard_Head_Material);
+  Danboard.add(Danboard_Head);
+  Danboard_Head.position.set(0, 120, 0);
+
+  scene.add(Danboard);
+
+  var Joint = Danboard_Limbs();
+  Left_Hand = Joint.clone();
+  Left_Hand.position.set(25, 100, 0);
+  Right_Hand = Joint.clone();
+  Right_Hand.position.set(-25, 100, 0);
+  Left_Leg = Joint.clone();
+  Left_Leg.position.set(10, 50, 0);
+  Right_Leg = Joint.clone();
+  Right_Leg.position.set(-10, 50, 0);
+  Danboard.add(Left_Hand);
+  Danboard.add(Right_Hand);
+  Danboard.add(Left_Leg);
+  Danboard.add(Right_Leg);
+
+  //GUI
+  gcontrols = {
+    Left_Hand_Angle_X: 0.1,
+    Right_Hand_Angle_X: 0.1,
+    Left_Leg_Angle_X: 0.1,
+    Right_Leg_Angle_X: 0.1,
+    Left_Hand_Angle_Z: 0.1,
+    Right_Hand_Angle_Z: 0.1,
+    Left_Leg_Angle_Z: 0.1,
+    Right_Leg_Angle_Z: 0.1,
+    Camera3rd: false,
+  }
+
+  var gui = new dat.GUI({
+    load: LoadJSON(),
+    preset: 'Default'
+  });
+
+  gui.remember(gcontrols);
+
+  var Joint_Angle = gui.addFolder("Joint_Angle");
+
+  Joint_Angle.add(gcontrols, 'Left_Hand_Angle_X', -1, 1);
+  Joint_Angle.add(gcontrols, 'Right_Hand_Angle_X', -1, 1);
+  Joint_Angle.add(gcontrols, 'Left_Leg_Angle_X', -1, 1);
+  Joint_Angle.add(gcontrols, 'Right_Leg_Angle_X', -1, 1);
+  Joint_Angle.add(gcontrols, 'Left_Hand_Angle_Z', 0, .4);
+  Joint_Angle.add(gcontrols, 'Right_Hand_Angle_Z', 0, .4);
+  Joint_Angle.add(gcontrols, 'Left_Leg_Angle_Z', 0, .4);
+  Joint_Angle.add(gcontrols, 'Right_Leg_Angle_Z', 0, .4);
+
+  var Camera_Switch = gui.addFolder("Camera Switch");
+  Camera_Switch.add(gcontrols, 'Camera3rd', false);
+
+  var gridXZ = new THREE.GridHelper(400, 10);
+  gridXZ.setColors(new THREE.Color(0xff0000), new THREE.Color(0xffffff));
+  scene.add(gridXZ);
+
+  BGM = document.getElementById('Stayin Alive');
+
+  window.addEventListener('resize', onWindowResize, false);
+}
+
+function Danboard_Limbs() {
+  var Limbs_Object = new THREE.Object3D();
+  var Limbs_Geometry = new THREE.BoxGeometry(10, 50, 10);
+  var Limbs_Material = new THREE.MeshBasicMaterial({
+    color: 0XCDAA7D,
+    polygonOffset: true,
+    polygonOffsetFactor: -1.0,
+    polygonOffsetUnits: -4.0
+  });
+  var Libms = new THREE.Mesh(Limbs_Geometry, Limbs_Material);
+  Limbs_Object.add(Libms);
+  Libms.position.set(0, -25, 0);
+  var Joint_geometry = new THREE.CylinderGeometry(5, 5, 10, 12);
+  var Joint_Material = new THREE.MeshBasicMaterial({
+    visible: false
+  });
+  var Joint = new THREE.Mesh(Joint_geometry, Joint_Material);
+  Joint.rotation.x = Math.PI / 2;
+  Limbs_Object.add(Joint);
+  return Limbs_Object;
+}
+
+function LoadJSON() {
+  return { // must be return {    return \n { will become a new line
+    "preset": "Default",
+    "remembered": {
+      "Default": {
+        "0": {
+          "Left_Hand_Angle_X": 0,
+          "Right_Hand_Angle_X": 0,
+          "Left_Leg_Angle_X": 0,
+          "Right_Leg_Angle_X": 0,
+          "Left_Hand_Angle_Z": 0,
+          "Right_Hand_Angle_Z": 0,
+          "Left_Leg_Angle_Z": 0,
+          "Right_Leg_Angle_Z": 0
+        }
+      },
+      "pose1": {
+        "0": {
+          "Left_Hand_Angle_X": 0.5,
+          "Right_Hand_Angle_X": -0.5,
+          "Left_Leg_Angle_X": -0.5,
+          "Right_Leg_Angle_X": 0.5,
+          "Left_Hand_Angle_Z": 0,
+          "Right_Hand_Angle_Z": 0,
+          "Left_Leg_Angle_Z": 0,
+          "Right_Leg_Angle_Z": 0
+        }
+      },
+      "pose2": {
+        "0": {
+          "Left_Hand_Angle_X": 1,
+          "Right_Hand_Angle_X": 1,
+          "Left_Leg_Angle_X": 0,
+          "Right_Leg_Angle_X": 0,
+          "Left_Hand_Angle_Z": 0,
+          "Right_Hand_Angle_Z": 0,
+          "Left_Leg_Angle_Z": 0,
+          "Right_Leg_Angle_Z": 0
+        }
+      },
+      "pose3": {
+        "0": {
+          "Left_Hand_Angle_X": 0,
+          "Right_Hand_Angle_X": 1,
+          "Left_Leg_Angle_X": 1,
+          "Right_Leg_Angle_X": 1,
+          "Left_Hand_Angle_Z": 0,
+          "Right_Hand_Angle_Z": 0,
+          "Left_Leg_Angle_Z": 0,
+          "Right_Leg_Angle_Z": 0
+        }
+      },
+    },
+    "closed": false,
+    "folders": {}
+  };
+}
+
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+}
+
+
+function style(ss) {
+  if (ss === 'Walking') {
+    Walk_Check = !Walk_Check;
+    Dance_Check = false;
+    keys = Wkeys;
+  } else if (ss === 'Dancing') {
+    Dance_Check = !Dance_Check;
+    Walk_Check = false;
+    keys = Dkeys;
+  }
+}
+
+function CamerLook(camera3rd_check) {
+  //Camera3d position set
+  var cameraOffset = Danboard.localToWorld(new THREE.Vector3(0, 200, -150));
+  camera3rd.position.copy(cameraOffset);
+  camera3rd.lookAt(Danboard.position);
+
+  if (!camera3rd_check) renderer.render(scene, camera);
+  else renderer.render(scene, camera3rd);
+}
+
+function Walk_Activity(Walk_Switch) {
+  if (Walk_Switch) {
+    var t = clock.getElapsedTime() % period;
+    var s = t / period; // normalized time
+    for (var i = keys.length - 1; i >= 0; i--) {
+      if (s > keys[i].s)
+        break;
+    }
+
+    // linearly interpolate between i & i+1
+    var tt = (s - keys[i].s) / (keys[i + 1].s - keys[i].s);
+    var LShoulder = (1 - tt) * keys[i].pose.LShoulder + tt * keys[i + 1].pose.LShoulder;
+    var RShoulder = (1 - tt) * keys[i].pose.RShoulder + tt * keys[i + 1].pose.RShoulder;
+    var LLeg = (1 - tt) * keys[i].pose.LLeg + tt * keys[i + 1].pose.LLeg;
+    var RLeg = (1 - tt) * keys[i].pose.RLeg + tt * keys[i + 1].pose.RLeg;
+
+    Left_Hand.rotation.x = LShoulder;
+    Right_Hand.rotation.x = RShoulder;
+    Left_Leg.rotation.x = LLeg;
+    Right_Leg.rotation.x = RLeg;
+
+
+    var Angle_Y = -Danboard_Angle;
+    var x = 150 * Math.cos(Angle_Y);
+    var z = 150 * Math.sin(Angle_Y);
+    Danboard.position.set(x, 0, z);
+    Danboard.rotation.y = -(Angle_Y);
+    if (Walk_Switch)
+      Danboard_Angle -= dt * Math.PI / 30;
+  }
+}
+
+function Dance_Activity(Dance_Switch) {
+  if (Dance_Switch) {
+    var t = clock.getElapsedTime() % period;
+    var s = t / period; // normalized time
+    for (var i = keys.length - 1; i >= 0; i--) {
+      if (s > keys[i].s)
+        break;
+    }
+
+    // linearly interpolate between i & i+1
+    var tt = (s - keys[i].s) / (keys[i + 1].s - keys[i].s);
+    var LShoulder_X = (1 - tt) * keys[i].pose.LShoulder_X + tt * keys[i + 1].pose.LShoulder_X;
+    var RShoulder_X = (1 - tt) * keys[i].pose.RShoulder_X + tt * keys[i + 1].pose.RShoulder_X;
+    var LShoulder_Z = (1 - tt) * keys[i].pose.LShoulder_Z + tt * keys[i + 1].pose.LShoulder_Z;
+    var RShoulder_Z = (1 - tt) * keys[i].pose.RShoulder_Z + tt * keys[i + 1].pose.RShoulder_Z;
+    var LLeg_X = (1 - tt) * keys[i].pose.LLeg_X + tt * keys[i + 1].pose.LLeg_X;
+    var RLeg_X = (1 - tt) * keys[i].pose.RLeg_X + tt * keys[i + 1].pose.RLeg_X;
+    var LLeg_Z = (1 - tt) * keys[i].pose.LLeg_Z + tt * keys[i + 1].pose.LLeg_Z;
+    var RLeg_Z = (1 - tt) * keys[i].pose.RLeg_Z + tt * keys[i + 1].pose.RLeg_Z;
+
+    Left_Hand.rotation.x = -LShoulder_X;
+    Right_Hand.rotation.x = -RShoulder_X;
+    Left_Leg.rotation.x = -LLeg_X;
+    Right_Leg.rotation.x = -RLeg_X;
+    Left_Hand.rotation.z = -LShoulder_Z;
+    Right_Hand.rotation.z = -RShoulder_Z;
+    Left_Leg.rotation.z = -LLeg_Z;
+    Right_Leg.rotation.z = -RLeg_Z;
+  }
+}
+
+function Danboard_GUI_Rotation_Update() {
+  Left_Hand.rotation.x = -gcontrols.Left_Hand_Angle_X;
+  Right_Hand.rotation.x = -gcontrols.Right_Hand_Angle_X;
+  Left_Leg.rotation.x = -gcontrols.Left_Leg_Angle_X;
+  Right_Leg.rotation.x = -gcontrols.Right_Leg_Angle_X;
+  Left_Hand.rotation.z = gcontrols.Left_Hand_Angle_Z;
+  Right_Hand.rotation.z = -gcontrols.Right_Hand_Angle_Z;
+  Left_Leg.rotation.z = gcontrols.Left_Leg_Angle_Z;
+  Right_Leg.rotation.z = -gcontrols.Right_Leg_Angle_Z;
+}
+
+function animate() {
+  dt = clock.getDelta();
+  controls.update();
+  Danboard_GUI_Rotation_Update();
+  Walk_Activity(Walk_Check);
+  Dance_Activity(Dance_Check);
+
+  requestAnimationFrame(animate);
+  CamerLook(gcontrols.Camera3rd);
+}
+
+
+</script>
+</body>
+
+</html>
