@@ -20,8 +20,8 @@
 		uniform int shading;
 		uniform int coordinate;
 		varying vec3 vertexColor;
-		varying vec4 pixelPosition;     // fragment position (per-pixel shading)
-		vec4 vertexPosition;             // vertex position (per-vertex shading)
+		varying vec4 pixelPosition;
+		vec4 vertexPosition;
 
 		void perVertexShading() {
 			if (vertexPosition.x < 0.0) 
